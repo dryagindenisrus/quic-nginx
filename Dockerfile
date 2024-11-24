@@ -1,23 +1,30 @@
 # Используем базовый образ Debian
-FROM debian:12
+FROM ubuntu:24.04
 
 # Указываем пользователя root
 USER root
 
-# Установка зависимостей
-RUN apt-get update -y && apt-get install -y \
-    curl \
-    gnupg2 \
-    ca-certificates \
-    lsb-release \
-    debian-archive-keyring \
-    python3 \
-    && curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor \
-    | tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null \
-    && echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] \
-http://nginx.org/packages/debian `lsb_release -cs` nginx" \
-    > /etc/apt/sources.list.d/nginx.list \
-    && apt-get install -y nginx
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get -y install git mercurial build-essential cmake ninja-build golang-go zlib1g-dev libpcre3-dev openssl
+
+RUN git clone https://github.com/google/boringssl \
+    && cd boringssl \
+    && mkdir build \
+    && cd build \
+    && cmake -GNinja .. \
+    && ninja
+
+RUN git clone https://github.com/nginx/nginx 
+
+RUN cd nginx \
+    && ./auto/configure \
+    --with-debug \
+    --with-http_v3_module \
+    --with-cc-opt="-I../boringssl/include" \
+    --with-ld-opt="-L../boringssl/build/ssl -L../boringssl/build/crypto"
+    
+RUN make \
+    && nginx -version
 
 # Установка рабочей директории для сайта
 WORKDIR /usr/share/nginx/html
@@ -33,13 +40,11 @@ ARG FULLCHAIN
 ARG PRIVKEY
 ARG DOMAIN
 
-# Копирование SSL сертификатов
-RUN mkdir -p /etc/nginx/ssl && \
-    cp ${FULLCHAIN} /etc/nginx/ssl/fullchain.pem && \
-    cp ${PRIVKEY} /etc/nginx/ssl/privkey.pem
+COPY ${PRIVKEY} /etc/nginx/ssl/privkey.pem
+COPY ${FULLCHAIN} /etc/nginx/ssl/fullchain.pem
 
 # Экспонирование портов
-EXPOSE 80 443 3000
+EXPOSE 80 443/udp
 
 # Запуск Nginx
 CMD ["nginx", "-g", "daemon off;"]
