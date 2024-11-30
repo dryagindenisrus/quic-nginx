@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        FULLCHAIN: ${FULLCHAIN}
+        PRIVKEY: ${PRIVKEY}
+        DOMAIN: ${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"     # Для HTTPS через TCP (HTTP/1.1 и HTTP/2)
+      - "443:443/udp" # Для HTTP/3 через UDP
+    environment:
+      - FULLCHAIN=${FULLCHAIN}
+      - PRIVKEY=${PRIVKEY}
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./site:/usr/share/nginx/html
+      - ./fullchain.pem:/etc/nginx/ssl/fullchain.pem
+      - ./privkey.pem:/etc/nginx/ssl/privkey.pem

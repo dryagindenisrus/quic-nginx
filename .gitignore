@@ -1,0 +1,9 @@
+# IDE
+.idea
+.vscode
+
+# Enviroment
+.env
+
+# Security
+*.pem
