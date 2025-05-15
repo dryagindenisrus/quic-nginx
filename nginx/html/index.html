@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUIC File Load Test</title>
+    <style>
+        #progress {
+            margin: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        .file-item {
+            margin: 5px 0;
+            padding: 5px;
+            background: #f5f5f5;
+        }
+        .file-size {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>QUIC File Load Test</h1>
+    <div id="progress"></div>
+
+    <script>
+        // Список файлов в порядке возрастания размера
+        const testFiles = [
+            '1KB.data',
+            '2KB.data',
+            '4KB.data',
+            '8KB.data',
+            '16KB.data',
+            '32KB.data',
+            '64KB.data',
+            '128KB.data',
+            '256KB.data',
+            '512KB.data',
+            '1024KB.data',
+            '2048KB.data',
+            '4096KB.data',
+            '8192KB.data',
+            '16384KB.data',
+            '32768KB.data',
+            '65536KB.data',
+            '131072KB.data'
+        ];
+
+        // Функция для последовательной загрузки файлов
+        async function loadFilesSequentially() {
+            const progressDiv = document.getElementById('progress');
+            
+            for (const file of testFiles) {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `Загрузка <span class="file-size">${file}</span>...`;
+                progressDiv.appendChild(fileItem);
+                
+                try {
+                    const startTime = performance.now();
+                    const response = await fetch(`static/${file}`);
+                    const blob = await response.blob();
+                    const endTime = performance.now();
+                    const duration = (endTime - startTime).toFixed(2);
+                    
+                    fileItem.innerHTML += 
+                        ` ✓ Загружено за ${duration} мс (${(blob.size/1024).toFixed(2)} KB)`;
+                    fileItem.style.backgroundColor = '#e6ffe6';
+                } catch (error) {
+                    fileItem.innerHTML += ` ✗ Ошибка: ${error.message}`;
+                    fileItem.style.backgroundColor = '#ffe6e6';
+                }
+                
+                // Пауза между запросами (100мс)
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+
+        // Начинаем загрузку при открытии страницы
+        window.onload = loadFilesSequentially;
+    </script>
+</body>
+</html>
